@@ -45,47 +45,6 @@ function vchunk(a,n) = [
 	[for(i=[0:n-1]) a[j+i]]
 ];
 
-function box_edge_point(p) = (
-	(p == "bl" || p == false) ? [0,0]
-	: (p == "c" || p == true) ? [.5,.5]
-	: p == "br" ? [1,0]
-	: p == "tl" ? [0,1]
-	: p == "tr" ? [1,1]
-	: p == "l" ? [0,.5]
-	: p == "r" ? [1,.5]
-	: p == "b" ? [.5,0]
-	: p == "t" ? [.5,1]
-	: assert(false) [0,0]
-);
-
-function at_box_edge(edge="b", relpos=0.5, z=undef, dim=[0,0], inset=0, center=false) = 
-let(
-	d=dim + (is_undef($dim) ? [0,0] : $dim),
-	ins=inset + (is_undef($inset) ? 0 : $inset),
-	c=center || (!is_undef($center) && $center==true)
-)
-let(
-	x0=ins,
-	y0=ins,
-	x1=d[0]-ins,
-	y1=d[1]-ins,
-	x=x0 + relpos*(x1-x0),
-	y=y0 + relpos*(y1-y0)
-)
-concat(
-	((c ? -d/2 : [0,0]) +
-	(
-		edge == "b" ? [x,y0] :
-		edge == "t" ? [x,y1] :
-		edge == "l" ? [x0,y] :
-		edge == "r" ? [x1,y] :
-		edge == "dp" ? [x,y] : // positive diagonal
-		edge == "dn" ? [x,y1-y] : // negative diagonal
-		[0,0]
-	)),
-	(is_undef(z) ? [] : [z])
-);
-
 // centered square
 module csquare(dim) { square(dim, center=true); }
 
@@ -147,12 +106,13 @@ module chamfer_convex(r,x=0) {
 */
 
 module lin_extr(h,convexity=2, center=false, twist=0) {
-	assert($children > 0);
+	if ($children > 0)
 	// extrudes use the 1st argument as filename by default :O
 	linear_extrude(height=h, convexity=convexity, center=center, twist=twist)
 	children();
 }
 module rot_extr(a,convexity=4, center=false) {
+	if ($children > 0)
 	rotate(center ? -a/2 : 0, [0,0,1])
 	rotate_extrude(angle=a, convexity=convexity)
 	children();
@@ -170,7 +130,7 @@ module rot_array(count, angle, axis) {
 	children();
 }
 
-module traveling_extrude(points) {
+module hull_through_points(points) {
 	if (len(points) >= 2)
 	union() {
 		for(i=[1:len(points)-1]) {
@@ -189,7 +149,7 @@ module sine_extrude(height=1, wavelength=1, amplitude=1, center=false)
 	dt = dz / wavelength * 360;
 	dx = amplitude / dz;
 	translate(center ? [0,0,-height/2] : [0,0,0])
-	traveling_extrude(points=[
+	hull_through_points(points=[
 		for(i=[0:z_steps]) [
 			amplitude*sin(i*dt),
 			0,
@@ -206,120 +166,6 @@ function circle_segment_angle(r) =
 	str($fs)!="undef" ? r*PI/$fs :
 	(360/5);
 function circle_segment_count(r) = max(5, 360/circle_segment_angle(r));
-
-function corner_points_(w,h,inset=0) = [
-	[inset,inset],
-	[w-inset,inset],
-	[w-inset,h-inset],
-	[inset,h-inset]
-];
-
-function corner_points_c(w,h,inset=0) = [
-	[-w/2+inset,-h/2+inset],
-	[w/2-inset,-h/2+inset],
-	[w/2-inset,h/2-inset],
-	[-w/2+inset,h/2-inset]
-];
-
-function corner_points(w,h,inset=0,center=false) =
-	center ? corner_points_c(w,h,inset)
-	: corner_points_(w,h,inset);
-
-function rect_relpos(w,h,x,y,z,anchor="center") =
-	anchor == "bl" ? [x,y,z] :
-	anchor == "br" ? [w-x,y,z] :
-	anchor == "tl" ? [x,h-y,z] :
-	anchor == "tr" ? [w-x,h-y,z] : [w/2+x,h/2+y,z]
-;
-
-function rect_relpos_list(w,h,points,center=false) = [
-	for(P=[
-	for(p=points)
-	rect_relpos(w,h, p[0], p[1], p[2], p[3])
-	]) [P[0]-(center?w/2:0), P[1]-(center?h/2:0), P[2]]
-];
-
-function spaced_coords(spacing, count, x0=0, center=true) =
-count <= 1 ? [0] :
-[for(i=[0:count-1]) x0+i*spacing+(center?-(count-1)*spacing/2:0)];
-/* spaced_coords() testcase
-union() {
-	n=7;
-	s=10;
-	c=false;
-	x0=0;
-
-	color("blue")
-	translate([c ? -n*s/2+x0 : x0, 0])
-	cube([n*s,0.4,0.1]);
-
-	for(x=spaced_coords(spacing=s,count=n,center=c,x0=x0))
-	translate([x,0])
-	color("red")
-	cylinder(r=0.2,h=1);
-}
-*/
-
-function box_perimeter_points_(w,h,nx,ny,Nx,Ny,sx,sy) = concat(
-	ny > 0 ? [
-	for(c=spaced_coords(h/Ny,ny)) [0,h/2+c*sy],//right
-	for(c=spaced_coords(h/Ny,ny)) [w,h/2+c*sy] //left
-	] : [],
-	nx > 0 ? [
-	for(c=spaced_coords(w/Nx,nx)) [w/2+c*sx,0], // bottom
-	for(c=spaced_coords(w/Nx,nx)) [w/2+c*sx,h] // top
-	] : []
-);
-
-// useful with box_perimeter_points
-function sig(x) = x < 0 ? -1 : 1;
-function offset_coord(x,offs) = sig(x)*max([0, abs(x) + offs]);
-function offset_points(points,r) = [
-	for(p=points) [offset_coord(p[0],r), offset_coord(p[1],r)]
-];
-function offset_points_v(points,v) = [
-	for(p=points) [offset_coord(p[0],v[0]), offset_coord(p[1],v[1])]
-];
-
-/*
-get equally spaced coordinates along all four edges of a box
-(count) specifies number of points lying on edges
-if corners==true: additional 4 points are created in the corners
-scl with values <1 is used to clump the points near centres of edges
-*/
-function box_perimeter_points(dim, count, center=true, corners=false, scl=[1,1]) =
-	/*
-	let(count_x = is_undef(count[0]) ? count : count[0])
-	let(count_y = is_undef(count[1]) ? count : count[1])
-	assert(type(dim)=="vector")
-	assert(type(count_x)=="float")
-	assert(type(count_y)=="float")
-	*/
-	assert(len(dim)==2)
-	assert(len(count)==2)
-	let(count_x=count[0])
-	let(count_y=count[1])
-	concat(
-	[
-		for (p=box_perimeter_points_(
-			dim[0], dim[1],
-			count_x, count_y,
-			count_x + (corners?1:0), count_y + (corners?1:0),
-			scl[0], scl[1]))
-		p - (center ? dim/2 : [0,0]),
-	],
-	corners ? corner_points(dim[0],dim[1],center=center) : []);
-
-module cube_centerXY(dim) {
-	translate([-dim[0]/2,-dim[1]/2])
-	cube(dim);
-}
-
-module for_endpoints_x(length,inset=0,center=false) {
-	for(x=[inset,length-inset])
-	translate([(center ? -length/2 : 0) + x, 0])
-	children();
-}
 
 module line(a,b,r=1) {
 	hull() {
@@ -405,15 +251,6 @@ module xcube(s) { translate([0,s.y,s.z]/-2) cube(s); }
 module ycube(s) { translate([s.x,0,s.z]/-2) cube(s); }
 module zcube(s) { translate([s.x,s.y,0]/-2) cube(s); }
 
-module axis_arrow(l=10, s=1) {
-	translate([-s,-s,-s]*0.5) {
-		color("red") translate([s,0,0]) cube([l-s, s, s]);
-		color("green") translate([0,s,0]) cube([s, l-s, s]);
-		color("blue") translate([0,0,s]) cube([s, s, l-s]);
-	}
-	color("white") cube([s,s,s]*1.2, center=true);
-}
-
 function normalized(v) = v/norm(v);
 
 function transpose_2(m) = [[m[0][0],m[1][0]],[m[0][1],m[1][1]]];
@@ -487,7 +324,7 @@ module cutout_b(axis="x", coord=0, cond=true, t=1) {
 }
 
 // produces no geometry if r is much greater than dim
-// if r exceeds dim a little then the edges aren't smooth anymore
+// if r exceeds dim a little then the sides aren't straight anymore
 module rsquare(dim, r=1, center=false) {
 	hull()
 	translate(center?[0,0]:dim/2)
@@ -742,7 +579,8 @@ module rotated_copies(count, arc=360, axis=[0,0,1], center=true)
 	children();
 }
 
-module cylinderlike_cube(d=-1, r=-1, h=0, center=false)
+// cube with arguments similar to cylinder()
+module dh_cube(d=-1, r=-1, h=0, center=false)
 {
 	D=d<0 ? r*2 : d;
 	R=d<0 ? r : d/2;
@@ -750,41 +588,11 @@ module cylinderlike_cube(d=-1, r=-1, h=0, center=false)
 	cube([D,D,h]);
 }
 
-/* FDM friendly rail profile
-slopes are 45 degrees
-width of top is implicit
-  ____
- /    \  hsa: height of slope above
- |    |  hm:  height of middle section
- \.  ./  hsb: height of slope below
-  |  |  hl: height of leg
-    wb: width of base
-*/
-module rail_profile(wb=3,hl=2,hm=0.5,hsa=1,hsb=2)
-{
-	p0 = [wb/2, 0];
-	p1 = p0 + [0, hl];
-	p2 = p1 + [hsb,hsb];
-	p3 = p2 + [0, hm];
-	p4 = p3 + [-hsa,hsa];
-	side1=[p0,p1,p2,p3,p4];
-	side2=reverse([for(p=side1) [-p[0],p[1]]]);
-	polygon(points=concat(side1,side2));
-}
-
 module mirror_hull(axis)
 {
 	hull() {
 		children();
 		mirror(axis) children();
-	}
-}
-
-module fdm_support()
-{
-	if (!is_undef($support)) {
-		color("cyan")
-		children();
 	}
 }
 
@@ -798,46 +606,12 @@ module washer(d,D,h=-1)
 	}
 }
 
-module brect_ext(dim,b0,b1,b2,b3,org="bl")
-{
-	p0 = [0,0];
-	p1 = [dim[0],0];
-	p2 = [dim[0],dim[1]];
-	p3 = [0,dim[1]];
-	tr_aligned(org,-dim)
-	polygon(points=[
-		p0 + [0,b0],
-		p0 + [b0,0],
-		p1 - [b1,0],
-		p1 + [0,b1],
-		p2 - [0,b2],
-		p2 - [b2,0],
-		p3 + [b3,0],
-		p3 - [0,b3]
-	]);
-}
-module brect(dim,bevel,org="bl")
-{
-	b=min([dim[0]/2, dim[1]/2, bevel]);
-	brect_ext(dim,b,b,b,b,org);
-}
-
 // beveled washer
 module bwasher(d,D,h,bevel=0)
 {
 	rot_extr(360)
 	translate([d,0])
 	brect([D-d,h],bevel,"bl");
-}
-
-module primary_axes(l=5,s=1)
-{
-	if ($preview) {
-		s2=-s/2;
-		color("red") translate([0,s2,s2]) cube([l,s,s]);
-		color("green") translate([s2,0,s2]) cube([s,l,s]);
-		color("blue") translate([s2,s2,0]) cube([s,s,l]);
-	}
 }
 
 module x_parallel_lines(spacing, count, thickness=1, l=1000)

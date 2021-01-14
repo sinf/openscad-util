@@ -24,4 +24,23 @@ module visual_cuts(s=[3e2,3e2,3e2], l=[3e2,3e2,3e2]) {
 	}
 }
 
+module axis_arrow(l=10, s=1) {
+	translate([-s,-s,-s]*0.5) {
+		color("red") translate([s,0,0]) cube([l-s, s, s]);
+		color("green") translate([0,s,0]) cube([s, l-s, s]);
+		color("blue") translate([0,0,s]) cube([s, s, l-s]);
+	}
+	color("white") cube([s,s,s]*1.2, center=true);
+}
+
+
+module primary_axes(l=5,s=1)
+{
+	if ($preview) {
+		s2=-s/2;
+		color("red") translate([0,s2,s2]) cube([l,s,s]);
+		color("green") translate([s2,0,s2]) cube([s,l,s]);
+		color("blue") translate([s2,s2,0]) cube([s,s,l]);
+	}
+}
 
