@@ -12,11 +12,12 @@ module line(p0, p1, d)
  * beam: width of the bar connecting these 2 holes */
 module elongated_hole_arm(a0, a1, ad, b0, b1, bd, tol, wall, beam)
 {
+	ext=is_undef($exterior_fn) ? undef : $exterior_fn;
 	difference() {
 		let(xd = 2*(tol + wall))
 		union() {
-			line(a0, a1, ad + xd, $fn=$exterior_fn);//ignore the warning about undefined
-			line(b0, b1, bd + xd, $fn=$exterior_fn);
+			line(a0, a1, ad + xd, $fn=ext);
+			line(b0, b1, bd + xd, $fn=ext);
 			line((a0+a1)/2, (b0+b1)/2, beam);
 			children();
 		}
