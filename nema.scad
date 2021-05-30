@@ -14,7 +14,7 @@ module nema17_holes()
 
 module nema17_outline()
 {
-	r=(nema17_side_len-nema17_hole_dist)/2*0.8;
+	r=(nema17_side_len-nema17_hole_dist)/2;
 	tol=0.4;
 	chamfer_convex(sqrt(2)*r)
 	square(nema17_side_len + 2*tol, center=true);
