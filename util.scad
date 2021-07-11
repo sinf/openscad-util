@@ -762,3 +762,13 @@ module screw_hole(z0=0, z1=5, d=3.5, sink=5, $fn=18)
 // rot2(angle_deg)*[x,y]
 function rot2(a) = [[cos(a), -sin(a)], [sin(a), cos(a)]];
 
+
+function ngon_circumcircle_radius(Ri,theta) = Ri / cos(theta/2);
+
+/* produce an octagon that contains circle of specified radius
+ * useful for printing artefact-free holes at any orientation */
+module circle8(r) {
+	rotate(360/8/2, [0,0,1])
+	circle(r=ngon_circumcircle_radius(r, 360/8), $fn=8);
+}
+
