@@ -772,3 +772,8 @@ module circle8(r) {
 	circle(r=ngon_circumcircle_radius(r, 360/8), $fn=8);
 }
 
+module cylinder8(r,h,center=false) {
+	rotate(360/8/2, [0,0,1])
+	cylinder(r=ngon_circumcircle_radius(r, 360/8), h=h, center=center, $fn=8);
+}
+
