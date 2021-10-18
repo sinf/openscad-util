@@ -1,5 +1,25 @@
 
-module funnel(r1=2,r2=4,h1=10,h2=10,h3=10,o=0,o2=0) {
+$fa=5;
+$fs=0.5;
+
+smoothing=10;
+wall=1;
+d1=10;
+d2=30;
+h1=10;
+h2=10;
+r1=d1/2;
+r2=d2/2;
+h3=r2-r1;
+assert(d1 <= d2);
+
+main();
+
+module main() {
+	funnel_wall(r1=r1, r2=r2, h1=h1, h2=h2, h3=h3, w=wall, o2=smoothing);
+}
+
+module funnel(r1,r2,h1,h2,h3,o=0,o2=0) {
 	/* o: extra wall thickness
 	 * o2: smoothing
 	*/
@@ -23,7 +43,7 @@ module funnel(r1=2,r2=4,h1=10,h2=10,h3=10,o=0,o2=0) {
 	}
 }
 
-module funnel_wall(r1,r2,h1,h2,h3,w=1,o2=0) {
+module funnel_wall(r1,r2,h1,h2,h3,w,o2) {
 	difference(convexity=8) {
 		funnel(r1,r2,h1,h2,h3,w,o2=o2);
 		translate([0,0,-50])
