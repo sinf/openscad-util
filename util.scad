@@ -62,6 +62,8 @@ function flatten(l) = [ for (a = l) for (b = a) b ] ;
 function select(vector,indices) = [ for (index = indices) vector[index] ];
 function reverse(x) = [ for(i=[1:len(x)]) x[len(x)-i] ];
 
+function symmetric_polyline(points) = concat(points, [for(p=reverse(points)) [-p[0], p[1]]]);
+module symmetric_polygon(points) { polygon(points=symmetric_polyline(points)); }
 
 function vslice(vector, start_incl, end_excl) =
 	select(vector, range(start_incl, end_excl));
@@ -127,6 +129,14 @@ module lin_array(count, delta) {
 module rot_array(count, angle, axis) {
 	for(i=[0:count-0.5])
 	rotate(i*angle, axis)
+	children();
+}
+
+module rot_array_2(count, r=1, angle=360) {
+	if (count > 0)
+	for(i=[0:count-1])
+	rotate(i/count*angle, [0,0,1])
+	translate([r, 0])
 	children();
 }
 
@@ -761,4 +771,22 @@ module screw_hole(z0=0, z1=5, d=3.5, sink=5, $fn=18)
 
 // rot2(angle_deg)*[x,y]
 function rot2(a) = [[cos(a), -sin(a)], [sin(a), cos(a)]];
+
+
+// create a plate with holes. children is a 3d hole shape (like screw_hole())
+module screw_plate(pos, r=1, h=1) {
+	difference() {
+		linear_extrude(height=h, convexity=8)
+		hull()
+		offset(r=r)
+		projection()
+		for(p=pos)
+		translate(p)
+		children();
+
+		for(p=pos)
+		translate(p)
+		children();
+	}
+}
 
